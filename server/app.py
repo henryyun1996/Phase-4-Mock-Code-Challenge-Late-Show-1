@@ -27,19 +27,14 @@ def get_episodes():
 def episodes_by_id(id):
     episode = Episode.query.filter_by(id=id).first()
     if not episode:
-        return make_response({"error": "Episode not found"}, 404)
+        return make_response({"error": "404: Episode not found"}, 404)
     elif request.method == 'GET':
         return make_response(episode.to_dict(rules=("guests",)), 200)
     elif request.method == 'DELETE':
-        appearances = Appearance.query.all()
-        for appearance in appearances:
-            if appearance.episode_id == id:
-                db.session.delete(appearance)
-                db.session.commit()
         db.session.delete(episode)
         db.session.commit()
 
-        return make_response({"episode successfully deleted"}, 200)
+        return make_response({}, 204)
     
 @app.route('/guests', methods = ['GET'])
 def get_guests():
@@ -57,10 +52,12 @@ def new_appearance():
         db.session.add(new_appearance)
         db.session.commit()
 
-        guest = Episode.query.filter_by(id=new_appearance.guest.id).first()
-        return make_response(guest.to_dict(), 200)
-    except ValueError:
-        return make_response({"error": "400: Validation error."}, 400)
+        return make_response(
+                new_appearance.to_dict(rules=('-episode_id', '-guest_id')),
+                201
+            )
+    except Exception as e:
+        return make_response({"errors": "400: Validation error"},400)
 
 
 if __name__ == '__main__':
